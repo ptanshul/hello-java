@@ -44,16 +44,6 @@ pipeline {
                 }
             }
         }
-        stage("Java Build") {
-            steps {
-                script {
-                    dir(appFolder) {
-                        sh "mvn clean install -Djar.finalName=app"
-                        // Will produce a JAR: ./target/app.jar
-                    }
-                }
-            }
-        }
         stage("Docker Build") {
             steps {
                 dir(appFolder) {
