@@ -1,3 +1,4 @@
+// Based on:
 // https://raw.githubusercontent.com/redhat-cop/container-pipelines/master/basic-helm-spring-boot/Jenkinsfile
 
 library identifier: "pipeline-library@v1.5",
@@ -29,49 +30,48 @@ pipeline {
         stage("Checkout") {
             steps {
                 // This creates a separate folder to clone the Spring Boot app to
-                sh "mkdir ${appFolder}"
-                dir(appFolder) {
-                    git url: "${appSourceUrl}", branch: "${appSourceRef}"
-                }
+                checkout scm
+                // sh "mkdir ${appFolder}"
+
+                // dir(appFolder) {
+                //     git url: "${appSourceUrl}", branch: "${appSourceRef}"
+                // }
             }
         }
         stage("Get Version from POM") {
             steps {
                 script {
-                    dir(appFolder) {
+                    // dir(appFolder) {
                         tag = readMavenPom().getVersion()
-                    }
+                    // }
                 }
             }
         }
         stage("Docker Build") {
             steps {
-                dir(appFolder) {
+                // This installs or upgrades the spring-boot-build Helm chart.
+                // It creates or updates your application's BuildConfig and ImageStream
+                // dir(helmFolder) {
+                    sh "helm upgrade --install ${appName}-build charts/hello-java-build --set name=${appName} --set tag=${tag}"
+                // }
+
+                // This uploads your application's source code and performs a binary build in OpenShift
+                // dir(appFolder) {
                     binaryBuild(buildConfigName: appName, buildFromPath: ".")
-                }
+                // }
             }
         }
-        //         // This installs or upgrades the spring-boot-build Helm chart.
-        //         // It creates or updates your application's BuildConfig and ImageStream
-        //         // dir(helmFolder) {
-        //         //     sh "helm upgrade --install ${appName}-build .helm/spring-boot-build --set name=${appName} --set tag=${tag}"
-        //         // }
+        stage("Deploy") {
+            steps {
+                // This installs or upgrades the spring-boot Helm chart
+                // It creates or updates your application's Kubernetes resources
+                // It also waits until the readiness probe returns successfully
+                // dir(helmFolder) {
+                    sh "helm upgrade --install ${appName} charts/hello-java-build --set tag=${tag} --wait"
+                // }
+            }
+        }
 
-        //         // This uploads your application's source code and performs a binary build in OpenShift
-        //         dir(appFolder) {
-        //             binaryBuild(buildConfigName: appName, buildFromPath: ".")
-        //         }
-        //     }
-        // }
-        // stage("Deploy") {
-        //     steps {
-        //         // This installs or upgrades the spring-boot Helm chart
-        //         // It creates or updates your application's Kubernetes resources
-        //         // It also waits until the readiness probe returns successfully
-        //         dir(helmFolder) {
-        //             sh "helm upgrade --install ${appName} .helm/spring-boot --set tag=${tag} --wait"
-        //         }
-        //     }
-        // }
+        // You can now tag the image, and promote it to a production environment, etc.
     }
 }
